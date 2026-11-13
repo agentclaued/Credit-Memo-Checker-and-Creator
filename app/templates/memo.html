@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% from "_macros.html" import info, page_header %}
+{% block title %}Create batch{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+  {{ page_header('CREATE', 'Credit memo batch', 'Fill the form, then click Export Excel to get the batch in your template.') }}
+  <div style="display:flex;gap:8px;margin-top:14px">
+    <a class="btn ghost" href="/rules">📋 Template rules</a>  </div>
+</div>
+
+<section class="card xl" id="priceCard" hidden>
+  <div class="xb-tools"><button class="btn ghost" id="clearPrice">Clear</button><span class="muted" id="priceMsg" role="status"></span>
+    {{ info('Click a cell and paste (Ctrl+V) the Item # and Description columns copied from Excel. A copied header row is skipped. Every cell can be edited. These rows are written to the PRICE LIST sheet when you export.') }}</div>
+  <div class="table-wrap"><table class="grid xb" id="priceTable"><thead><tr><th>Item #</th><th>Description</th></tr></thead><tbody></tbody></table></div>
+</section>
+<section class="card xl" id="refCard" hidden>
+  <p class="muted" id="refNote"></p>
+  <div class="table-wrap"><table class="grid" id="refTable"><thead></thead><tbody></tbody></table></div>
+</section>
+<div id="batchSheets">
+<section class="card xl" id="batchCard">
+  <div class="xb-top">
+    <div class="xb-v">V3</div>
+    <div class="xb-lbl">CREDIT MEMO BATCH #:</div><div class="xb-in"><input id="bNo" placeholder="10-26973"></div>
+    <div class="xb-lbl">DATE:</div><div class="xb-in"><input id="bDate" type="date"></div>
+    <div class="xb-lbl">RETURN:</div><div class="xb-in"><input id="bReturn"></div>
+    <div class="xb-lbl">DIVISION:</div><div class="xb-in"><input id="bDiv" value="EM"></div>
+    <div class="xb-band">CREDITS TO BE ISSUED BY COMPUTER ROOM</div>
+  </div>
+  <div class="xb-tools"><button class="btn ghost" id="clearBatch">Clear</button><span class="muted" id="exportMsg" role="status"></span><span class="muted" id="pasteMsg" role="status"></span>
+    <label class="muted"><input type="checkbox" id="dbOnly" checked> Paste DB# only</label>
+    <label class="muted">Reason for all memos <select id="reasonAll"></select></label>
+    {{ info('Click a cell and paste (Ctrl+V) rows copied from Excel. A copied header row and the # column are skipped. A memo is created for each row and filled from the Ageing, Account list, Report 2 and Sale Report. Every cell can be edited.') }}</div>
+  <div class="table-wrap">
+    <table class="grid xb" id="batchTable">
+      <thead><tr>{% for c in rules.BATCH_COLUMNS %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody></tbody>
+      <tfoot><tr><td></td><td></td><td></td><td class="num money" id="batchTotal">0.00</td><td colspan="6"></td></tr></tfoot>
+    </table>
+  </div>
+</section>
+
+<section class="card mt xl" id="memoCard">
+  <div id="memoForm" hidden>
+    <div class="memo-box xm">
+      <div class="xm-co">E. Mishan &amp; Sons</div>
+      <div class="xm-sub"><span>Credit Memo Form</span><label>DATE <input type="date" data-f="date"></label></div>
+      <div class="xm-party">
+        <div class="xm-lbl">SOLD TO</div><div class="xm-name"><input data-f="soldTo" placeholder="MENARD INC YARD# 3039"></div>
+        <div class="xm-lbl">SHIP TO</div><div class="xm-name"><input data-f="shipTo" placeholder="MENARD INC YARD# 3039"></div>
+        <div></div><div class="xm-acct"><input data-f="soldAcct" placeholder="ME9145"></div>
+        <div></div><div class="xm-acct"><input data-f="shipAcct" placeholder="ME1715"></div>
+      </div>
+      <div class="xm-r5 xm-head"><div>REASON</div><div>REASON CODE</div><div>SALESMAN</div><div>TERMS</div><div>SHIPPED VIA</div></div>
+      <div class="xm-r5">
+        <div><b id="reasonText" class="ro">—</b></div>
+        <div><select data-f="code" id="reasonSel"></select></div>
+        <div><input data-f="salesman" placeholder="JACK/ADI BADASH"></div>
+        <div><input data-f="terms" placeholder="NET 30 DAYS"></div>
+        <div><input data-f="via"></div>
+      </div>
+      <div class="xm-claim"><div class="xm-grey">CUSTOMER CLAIM #</div><div><span class="ro" id="claimText">—</span><input data-f="claim" placeholder="Claim no. (e.g. PRNT0650875)"></div></div>
+      <table class="grid lines" id="linesTable">
+        <thead><tr><th>STYLE NO.</th><th class="num">QUANTITY PCS</th><th>&nbsp;</th><th class="num">PRICE</th><th class="num">AMOUNT</th></tr></thead>
+        <tbody></tbody>
+        <tfoot>
+          <tr><td colspan="3" class="nb"></td><td class="right">SUBTOTAL</td><td class="num money" id="mSub">0.00</td></tr>
+          <tr><td colspan="3" class="nb"></td><td class="right">GST/HST</td><td><input class="num" data-f="gst" type="number" step="0.01"></td></tr>
+          <tr><td colspan="3" class="nb"></td><td class="right">FREIGHT/HANDLING</td><td><input class="num" data-f="freight" type="number" step="0.01"></td></tr>
+          <tr><td colspan="3" class="nb"></td><td class="right">ADJUSTMENT</td><td><input class="num" data-f="adj" type="number" step="0.01"></td></tr>
+          <tr class="total"><td colspan="3" class="nb"></td><td class="right">TOTAL</td><td class="num money" id="mTotal">0.00</td></tr>
+        </tfoot>
+      </table>
+      <div class="xm-bar">DEBIT MEMO NOS.</div>
+      <div class="xm-db"><input data-f="db" placeholder="DB#534583"></div>
+      <div class="xm-del"><button class="btn ghost" id="delMemo">Delete this memo</button></div>
+    </div>
+  </div>
+</section>
+</div>
+<div class="sheetbar xl" id="sheetBar" role="tablist" aria-label="Sheets of the workbook">
+  <button class="stab" data-sheet="REASON">REASON</button><button class="stab" data-sheet="PRICE LIST">PRICE LIST</button>
+  <button class="stab" data-sheet="Work1">Work1</button><button class="stab" data-sheet="Work2">Work2</button><button class="stab" data-sheet="Work3">Work3</button>
+  <button class="stab on" data-sheet="Batch">Batch</button><span class="memo-tabs" id="memoTabs"></span>
+</div>
+<button class="btn" id="exportBtn" style="position:fixed;right:24px;bottom:52px;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.3)">Export Excel</button>
+<datalist id="skuList"></datalist>
+{% endblock %}
+{% block scripts %}<script>window.MEMO_RULES = {{ {'maxMemos': rules.BATCH_LAST_ROW - rules.BATCH_FIRST_ROW + 1, 'lines': rules.MEMO_LAST_LINE - rules.MEMO_FIRST_LINE + 1}|tojson }};</script>
+<script src="{{ url_for('static', path='memo.js') }}?v={{ build_time }}"></script>{% endblock %}

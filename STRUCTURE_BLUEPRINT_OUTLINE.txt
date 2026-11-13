@@ -1,0 +1,29 @@
+CREDIT DEPARTMENT SYSTEM — STRUCTURE BLUEPRINT
+
+app/
+  main.py            FastAPI routes only (pages, JSON API, upload handler)
+  database.py        SQLite connection, schema, transaction()  -> data/credit.sqlite
+  template_rules.py  The strict rules of the Excel template (sheets, columns, allowed formulas)
+  importers/         One module per raw file type (ageing, orders, batch, ar_pdf); specs.py = table registry (SQLite schema + viewer columns);
+                     runner.py = import in a background thread + save to SQLite; __init__.py = SOURCES registry
+  templates/         base.html, _macros.html, dashboard, upload, memo, recheck, rules
+  static/            app.css, app.js, upload.js, memo.js, viewer.js (data tables), viewer_engine.js + viewer.css (from the Report2Excel v7 tool),
+                     parse_report.js (A/R PDF parser from that tool), vendor/ (jquery, datatables, pdf.js)
+config.py            HOST / PORT
+start_dashboard.bat  Double-click to run
+templates_xlsx/      Master Credit Memo Batch template (read-only; exports are copies of it)
+data/                credit.sqlite and uploads/<kind>/  (never deployed or overwritten)
+exports/             Generated batch Excel files
+tools/               Existing helper importers kept as reference (sales_importer, report2_pdf_importer)
+Rechecking_process/  Original raw files
+docs/  tests/
+
+DATA FLOW
+  Upload -> data/uploads/<kind>/ + source_files row -> importer -> SQLite tables t_<table> (every row keeps source_file_id + file name)
+  A/R PDF is read in the BROWSER with pdf.js + parse_report.js, then posted to /api/files/{id}/rows
+  Import center -> click a file -> /api/files/{id}/data -> viewer.js builds the tables (filters, search, totals)
+  Create batch -> form (template formulas only) -> export from a copy of the template -> exports/
+  Recheck -> upload filled batch -> compare with imported data -> pass/fail per check
+
+STATUS (demo 0.2.0): steps 1 Import and 2 Store work for all five files; the Import center shows each file's data; memo form is a demo.
+NEXT: template export (Excel), recheck checks, create memos from stored data.

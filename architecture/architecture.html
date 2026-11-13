@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Credit Department - Architecture X-Ray</title>
+<style>
+:root{
+  --bg:#0b1220;--panel:#111a2e;--panel2:#16223b;--line:#26365a;--ink:#e6edf7;--muted:#8fa2c4;
+  --blue:#4da3ff;--teal:#2dd4bf;--green:#4ade80;--amber:#fbbf24;--red:#f87171;--violet:#a78bfa;--pink:#f472b6;
+}
+:root[data-theme="light"]{
+  --bg:#f3f6fb;--panel:#ffffff;--panel2:#eef3fb;--line:#d3dcec;--ink:#14213d;--muted:#5b6b8c;
+  --blue:#1d6fd8;--teal:#0d9488;--green:#16a34a;--amber:#b7791f;--red:#dc2626;--violet:#7c3aed;--pink:#db2777;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 "Segoe UI",system-ui,sans-serif}
+header{padding:22px 24px 10px;max-width:1280px;margin:0 auto;display:flex;gap:16px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+h1{margin:0;font-size:24px;letter-spacing:.2px}
+header p{margin:4px 0 0;color:var(--muted);max-width:760px}
+.btn{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}
+.btn:hover{border-color:var(--blue)}
+.btn.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+nav{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav .in{max-width:1280px;margin:0 auto;padding:8px 24px;display:flex;gap:8px;flex-wrap:wrap}
+main{max-width:1280px;margin:0 auto;padding:8px 24px 60px}
+section{margin:26px 0 40px}
+section>h2{margin:0 0 4px;font-size:19px}
+section>p.lead{margin:0 0 14px;color:var(--muted);max-width:900px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+.grid2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px}
+@media(max-width:920px){.grid2{grid-template-columns:1fr}}
+code,.mono{font-family:Consolas,"Cascadia Mono",monospace;font-size:12.5px}
+.tag{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:1px 9px;font-size:11.5px;color:var(--muted)}
+svg text{font-family:"Segoe UI",system-ui,sans-serif}
+/* big picture */
+.node rect{fill:var(--panel2);stroke:var(--line);stroke-width:1.5;transition:.2s}
+.node:hover rect,.node.sel rect{stroke:var(--blue);fill:color-mix(in srgb,var(--blue) 14%,var(--panel2))}
+.node{cursor:pointer}
+.node .t{fill:var(--ink);font-size:13px;font-weight:700}
+.node .s{fill:var(--muted);font-size:11px}
+.edge{stroke:var(--line);stroke-width:1.6;fill:none;stroke-dasharray:4 5}
+.lane-label{fill:var(--muted);font-size:11px;letter-spacing:1.4px;text-transform:uppercase}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;color:var(--muted);font-size:12.5px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+#nodeInfo h3{margin:0 0 4px;font-size:16px}
+#nodeInfo ul{margin:8px 0 0;padding-left:18px}
+#nodeInfo li{margin:3px 0}
+/* flow */
+.lane{display:flex;align-items:stretch;gap:0;overflow-x:auto;padding:14px 4px 22px;position:relative}
+.stage{flex:0 0 auto;min-width:130px;max-width:150px;text-align:center;position:relative;padding:0 4px}
+.stage .box{background:var(--panel2);border:1.5px solid var(--line);border-radius:12px;padding:10px 6px;transition:.25s;height:100%}
+.stage .box b{display:block;font-size:12.5px}
+.stage .box span{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+.stage.active .box{border-color:var(--teal);background:color-mix(in srgb,var(--teal) 15%,var(--panel2));transform:translateY(-3px);box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.stage.done .box{border-color:color-mix(in srgb,var(--green) 55%,var(--line))}
+.arrow{flex:0 0 34px;align-self:center;height:2px;background:var(--line);position:relative}
+.arrow::after{content:"";position:absolute;right:-1px;top:-4px;border-left:7px solid var(--line);border-top:5px solid transparent;border-bottom:5px solid transparent}
+.arrow.live{background:var(--teal)}
+.arrow.live::after{border-left-color:var(--teal)}
+.packet{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--amber);box-shadow:0 1px 3px rgba(0,0,0,.4);transition:left .7s ease;pointer-events:none;z-index:3;left:0}
+.ctrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 4px}
+.ctrl label{color:var(--muted);font-size:12.5px}
+.flowtabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.stepbox h3{margin:0;font-size:16px}
+.stepbox p{margin:6px 0}
+.stepbox .where{color:var(--teal)}
+pre.data{margin:8px 0 0;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;overflow:auto;max-height:230px;font-size:12px;line-height:1.45;white-space:pre}
+.progress{height:4px;background:var(--line);border-radius:4px;overflow:hidden;margin:8px 0}
+.progress i{display:block;height:100%;width:0;background:var(--teal);transition:width .4s}
+/* cleaning lab */
+table.t{border-collapse:collapse;width:100%;font-size:12px}
+table.t th{background:var(--panel2);text-align:left;padding:5px 8px;border-bottom:1px solid var(--line);color:var(--muted);font-weight:600;white-space:nowrap}
+table.t td{padding:4px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.rawrow{padding:3px 8px;border-radius:6px;margin:2px 0;border:1px solid transparent;transition:.35s;font-family:Consolas,monospace;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rawrow.hit{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 14%,transparent)}
+.rawrow.k-title{color:var(--violet)}.rawrow.k-head{color:var(--muted)}.rawrow.k-line{color:var(--ink)}.rawrow.k-total{color:var(--teal)}.rawrow.k-grand{color:var(--red);text-decoration:line-through}
+.rawrow .lab{float:right;font-size:10.5px;margin-left:8px;opacity:.9}
+.newcol{background:color-mix(in srgb,var(--green) 18%,transparent)!important;color:var(--green);font-weight:700}
+.flash{animation:fl 1s}
+@keyframes fl{from{background:color-mix(in srgb,var(--amber) 55%,transparent)}to{background:transparent}}
+/* database */
+.tables{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.tbl{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px;cursor:pointer;transition:.2s}
+.tbl:hover,.tbl.sel{border-color:var(--blue)}
+.tbl b{display:block}
+.tbl small{color:var(--muted)}
+.bar{height:6px;border-radius:6px;background:var(--line);margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--blue);width:0;transition:width 1.2s ease}
+.cols{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.cols span{border:1px solid var(--line);border-radius:6px;padding:1px 7px;font-size:11.5px;background:var(--bg)}
+.cols span.new{border-color:var(--green);color:var(--green)}
+.cols span.virt{border-style:dashed}
+/* recheck */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.pc{background:var(--panel2);border:1.5px solid var(--line);border-radius:10px;padding:7px 9px;font-size:12px;transition:.3s;position:relative;cursor:pointer}
+.pc b{color:var(--muted);margin-right:4px}
+.pc.run{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 14%,var(--panel2))}
+.pc.ok{border-color:var(--green)}
+.pc.bad{border-color:var(--red);background:color-mix(in srgb,var(--red) 12%,var(--panel2))}
+.pc.ok::after{content:"PASS";position:absolute;right:8px;top:6px;font-size:10px;color:var(--green)}
+.pc.bad::after{content:"ERROR";position:absolute;right:8px;top:6px;font-size:10px;color:var(--red)}
+.pc.sel{outline:2px solid var(--blue)}
+.stagehd{margin:14px 0 6px;font-size:12px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0}
+.kv dt{color:var(--muted)}.kv dd{margin:0}
+.callout{border-left:3px solid var(--amber);background:color-mix(in srgb,var(--amber) 9%,transparent);padding:8px 12px;border-radius:0 8px 8px 0;margin:10px 0;color:var(--ink)}
+.rule{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.rule .card b{display:block;margin-bottom:2px}
+.rule .card span{color:var(--muted);font-size:12.5px}
+footer{max-width:1280px;margin:0 auto;padding:0 24px 40px;color:var(--muted);font-size:12px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Credit Department &mdash; Architecture X-Ray</h1>
+    <p>How the app works inside: where a file goes when you upload it, how it is cleaned, how it lands in SQLite, how the viewer shows it fast, and how a credit memo batch is rechecked by the 30 protocols. Click anything. Use Play / Step to watch the data move.</p>
+  </div>
+  <button class="btn" id="theme">Light / dark</button>
+</header>
+<nav><div class="in" id="nav"></div></nav>
+<main>
+
+<section id="s1">
+  <h2>1 &middot; The big picture</h2>
+  <p class="lead">One native FastAPI process, one SQLite file, plain HTML/JS in the browser. Moving dots are data: <b>blue</b> raw files going in, <b>green</b> clean rows into the database, <b>amber</b> data going back out to screen, <b>pink</b> recheck requests. Click a box to inspect it.</p>
+  <div class="grid2">
+    <div class="card">
+      <svg id="big" viewBox="0 0 900 560" width="100%" role="img" aria-label="Architecture diagram"></svg>
+      <div class="legend">
+        <span><i style="background:var(--blue)"></i>raw file upload</span>
+        <span><i style="background:var(--green)"></i>clean rows to SQLite</span>
+        <span><i style="background:var(--amber)"></i>data back to the screen</span>
+        <span><i style="background:var(--pink)"></i>recheck request / result</span>
+      </div>
+    </div>
+    <div class="card" id="nodeInfo"></div>
+  </div>
+</section>
+
+<section id="s2">
+  <h2>2 &middot; Follow the data</h2>
+  <p class="lead">Pick a journey. Each stage lights up in order, the amber packet travels to the next one, and the inspector shows the real function and what the data looks like at that moment.</p>
+  <div class="flowtabs" id="flowtabs"></div>
+  <div class="card">
+    <div class="ctrl">
+      <button class="btn" id="fPlay">Play</button>
+      <button class="btn" id="fPrev">Back</button>
+      <button class="btn" id="fNext">Step</button>
+      <button class="btn" id="fReset">Restart</button>
+      <label>Speed <input type="range" id="fSpeed" min="1" max="5" value="3"></label>
+      <span class="tag" id="fCount"></span>
+    </div>
+    <div class="progress"><i id="fBar"></i></div>
+    <div class="lane" id="lane"></div>
+    <div class="stepbox" id="stepbox"></div>
+  </div>
+</section>
+
+<section id="s3">
+  <h2>3 &middot; Data cleaning lab &mdash; Sale Report</h2>
+  <p class="lead">The raw "Orders by Item" file is messy: a title block, headers, order lines, item totals and grand totals. <code>app/importers/orders.py</code> keeps only the order lines, copies item Description and Pack from the item-total row, and builds the new <b>Dv+SaleReport</b> key. Step through it.</p>
+  <div class="grid2">
+    <div class="card">
+      <div class="ctrl">
+        <button class="btn" id="cPlay">Play</button>
+        <button class="btn" id="cStep">Step</button>
+        <button class="btn" id="cReset">Restart</button>
+        <span class="tag" id="cTag"></span>
+      </div>
+      <div class="stagehd">Raw file (what the customer system exports)</div>
+      <div id="raw"></div>
+      <div class="stagehd">Clean result &rarr; table <code>t_orders</code></div>
+      <div style="overflow:auto"><table class="t" id="clean"></table></div>
+    </div>
+    <div class="card" id="cNote"></div>
+  </div>
+</section>
+
+<section id="s4">
+  <h2>4 &middot; Database &mdash; how tables are generated</h2>
+  <p class="lead">There is no hand-written SQL schema per table. <code>app/importers/specs.py</code> is the single registry: each entry gives the SQLite columns <i>and</i> the viewer columns. At startup <code>init_schema()</code> creates missing tables and adds missing columns, never dropping data. Row counts below are a snapshot of your current database.</p>
+  <div class="grid2">
+    <div>
+      <div class="tables" id="tables"></div>
+    </div>
+    <div class="card" id="tblInfo"></div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div class="ctrl"><b>Life of one file's rows</b>
+      <button class="btn" id="dPlay">Play</button><span class="tag" id="dTag"></span></div>
+    <div class="lane" id="dlane"></div>
+    <div class="stepbox" id="dstep"></div>
+  </div>
+</section>
+
+<section id="s5">
+  <h2>5 &middot; Recheck engine &mdash; 30 protocols</h2>
+  <p class="lead">A filled Credit Memo Batch (.xlsx) is read with openpyxl and compared with the template, the Ageing, the Sale Report and Report 2 that are already in SQLite. Nothing is written back. Press Run to watch every protocol inspect the batch.</p>
+  <div class="grid2">
+    <div class="card">
+      <div class="ctrl">
+        <button class="btn" id="rRun">Run recheck</button>
+        <button class="btn" id="rReset">Reset</button>
+        <label><input type="checkbox" id="rErr" checked> simulate a batch with mistakes</label>
+        <span class="tag" id="rTag"></span>
+      </div>
+      <div id="pgrid"></div>
+    </div>
+    <div class="card" id="pInfo"></div>
+  </div>
+  <div class="callout"><b>Why it is fast now:</b> the Ageing / Sale Report / Report 2 lookup tables are loaded once and kept in memory until the database file changes (an import or edit). Template column widths are measured once per sheet instead of thousands of times.</div>
+</section>
+
+<section id="s6">
+  <h2>6 &middot; Safety rules built into the design</h2>
+  <div class="rule" id="rules"></div>
+</section>
+
+</main>
+<footer>Generated from the project source (app/main.py, app/recheck.py, app/importers/*, app/data_cache.py, app/database.py). Row counts are a snapshot taken when this file was generated.</footer>
+
+<script>
+const PROTOCOLS = [{"n": 1, "title": "No spaces in cells", "rule": "No space before or after the text in any cell, on every sheet. A cell with only a space is also wrong.", "fix": "Remove the extra space (press Delete)", "tag": "P1"}, {"n": 2, "title": "DB# with hashtag", "rule": "DB#123456 (or IN#123456). The # is a must. Same number on the Batch sheet and the memo sheet.", "fix": "Write it with the hashtag, like DB#123456, the same on Batch and memo", "tag": "P2"}, {"n": 3, "title": "DB amount = Ageing", "rule": "The DB number must exist in the Ageing and the memo amount must equal the Ageing amount.", "fix": "Check the DB in the Ageing first; the memo amount must be the same", "tag": "P3"}, {"n": 4, "title": "Item in sale report", "rule": "Every item on the memo must be in the sale report of the same account.", "fix": "Use an item that was sold to this account", "tag": "P4"}, {"n": 5, "title": "Salesman, Terms, Reason", "rule": "All four filled. Salesman and Terms match the account. Reason and code are exactly (case sensitive) as in the REASON sheet.", "fix": "Fill it in; use the code and exact text from the REASON sheet", "tag": "P5"}, {"n": 6, "title": "No extra formula", "rule": "Only the Batch total cell has a formula on the Batch sheet. Nothing else may be added anywhere.", "fix": "Delete the extra formula and type the value by hand", "tag": "P6"}, {"n": 7, "title": "Template formulas kept", "rule": "VLOOKUP, price x quantity, SUBTOTAL and TOTAL must stay on every memo.", "fix": "Restore the template formula", "tag": "P7"}, {"n": 8, "title": "Account name = Ageing", "rule": "SOLD TO name and account, and the Batch COMPANY, must be the same as in the Ageing.", "fix": "Copy the account name and number from the Ageing", "tag": "P8"}, {"n": 9, "title": "No duplicate item", "rule": "One item once on the PRICE LIST, and once per memo.", "fix": "Keep each item only once", "tag": "P9"}, {"n": 10, "title": "Qty and price within sale report", "rule": "Memo quantity and price must not be more than the sale report. Less is allowed.", "fix": "Use a quantity and price not more than the sale report", "tag": "P10"}, {"n": 11, "title": "REASON sheet = database", "rule": "The REASON sheet of the file must match the Reason codes list imported in the DataBase Room (case does not matter). Then every memo reason and code must match that REASON sheet exactly (case sensitive).", "fix": "Make the REASON sheet the same as the Reason codes database", "tag": "D_P11"}, {"n": 12, "title": "Format unchanged", "rule": "The template sheets, labels and layout are intact: required sheets, no extra sheets, Batch and memo labels, Batch total formula.", "fix": "Use the template as it is; do not rename, delete or add sheets or labels", "tag": "FORMAT"}, {"n": 13, "title": "Sheets 1-20 in sequence", "rule": "1 to 20 memo sheets numbered 1, 2, 3 without gaps. Batch rows numbered 1, 2, 3 and as many as memo sheets.", "fix": "Number the memo sheets 1, 2, 3... and keep one Batch row per memo", "tag": "SEQ"}, {"n": 14, "title": "Claim # format", "rule": "CUSTOMER CLAIM # is '<Reason> : <claim no.>', or just '<Reason>' when there is no claim number.", "fix": "Write it like: Reason : claim number (or only the Reason)", "tag": "CLAIM"}, {"n": 15, "title": "Ship via / Return empty", "rule": "The RETURN cell on the Batch sheet and SHIPPED VIA on every memo must be empty.", "fix": "Clear the cell", "tag": "EMPTY"}, {"n": 16, "title": "Work sheets empty", "rule": "Work1, Work2 and Work3 must have no data.", "fix": "Clear the Work sheets", "tag": "WORK"}, {"n": 17, "title": "Same date", "rule": "Every Batch row date and every memo date is filled and equals the batch DATE.", "fix": "Use the batch date in every date cell", "tag": "DATE"}, {"n": 18, "title": "Math and cross-checks", "rule": "Line amount = PCS x price, SUBTOTAL, TOTAL, Batch total, and Batch row = memo (amount, claim #).", "fix": "Correct the amount so the math agrees", "tag": "MATH"}, {"n": 19, "title": "Division in capitals", "rule": "The DIVISION on the Batch sheet is two letters, both in capitals (EV, not Ev).", "fix": "Type the division with both letters in capitals, like EV", "tag": "DIVISION"}, {"n": 20, "title": "Required fields filled", "rule": "Batch number and DATE, COMPANY on every Batch row, and SOLD TO name and account on every memo are filled in.", "fix": "Fill it in", "tag": "REQUIRED"}, {"n": 21, "title": "Account in capitals", "rule": "SOLD TO and SHIP TO account numbers are written in capitals with no spaces (AM9286). Style numbers in small letters show as a note.", "fix": "Write the account in capitals without spaces", "tag": "CAPS"}, {"n": 22, "title": "Positive numbers", "rule": "PCS is a whole number above zero, price and amounts are above zero, and GST/HST, freight and adjustment are numbers.", "fix": "Use a whole number above zero for PCS and an amount above zero", "tag": "POSITIVE"}, {"n": 23, "title": "No duplicate DB# or code", "rule": "A DB# may be on only one Batch row. A reason code may be on the REASON sheet only once.", "fix": "Keep each DB# and each reason code only once", "tag": "DUPLICATE"}, {"n": 24, "title": "No empty line between items", "rule": "On a memo the items follow each other with no empty line between them.", "fix": "Move the items up so there is no empty line between them", "tag": "GAPS"}, {"n": 25, "title": "PRICE LIST complete", "rule": "Every item on the PRICE LIST has a description.", "fix": "Add the description of the item on the PRICE LIST", "tag": "PRICELIST"}, {"n": 26, "title": "Batch = Ageing", "rule": "Every Batch row: DB# is in the Ageing Ref#; AMOUNT = Ageing Total; COMPANY = Ageing Name; CLAIM # = Ageing Claim#. (The DATE must be the batch DATE: see Same date.)", "fix": "Copy the value from the Ageing", "tag": "AGEING"}, {"n": 27, "title": "Same account on every memo", "rule": "SOLD TO name and account and SHIP TO name and account are exactly the same on every memo sheet of the batch (the DATE too: see Same date).", "fix": "Use the same SOLD TO and SHIP TO on every memo", "tag": "SAMEMEMO"}, {"n": 28, "title": "Same company on every Batch row", "rule": "The COMPANY on every Batch row is exactly the same (the first row is the reference).", "fix": "Write the same company name on every Batch row", "tag": "SAMECOMPANY"}, {"n": 29, "title": "Memo company = Batch company = Ageing", "rule": "SOLD TO name (B4) on every memo is exactly the same as the Batch COMPANY and as the Ageing Name of the account.", "fix": "Copy the Ageing name into SOLD TO on every memo and into the Batch COMPANY", "tag": "MEMOCOMPANY"}, {"n": 30, "title": "Ship code in Sale Report / Report 2", "rule": "SHIP TO account (G6) on every memo must be an Acct ShipCode of the Sale Report, or else a Ship Code of Report 2 (A/R PDF), for the account Batch DIVISION (D4) + SOLD TO account (B6).", "fix": "Use a ship code that is on the Sale Report or Report 2 for this account", "tag": "SHIPCODE"}];
+const TABLES = [{"id": "ageing_full", "title": "Full Ageing", "kind": "ageing", "rows": 32684, "cols": [{"key": "acct", "label": "Acct", "type": "s", "sum": false, "virt": false}, {"key": "div", "label": "Div", "type": "s", "sum": false, "virt": false}, {"key": "name", "label": "Name", "type": "s", "sum": false, "virt": false}, {"key": "ref_no", "label": "Ref#", "type": "s", "sum": false, "virt": false}, {"key": "ref_type", "label": "Ref Type", "type": "s", "sum": false, "virt": false}, {"key": "date", "label": "Date", "type": "d", "sum": false, "virt": false}, {"key": "due_date", "label": "Due Date", "type": "d", "sum": false, "virt": false}, {"key": "order_no", "label": "Order#", "type": "s", "sum": false, "virt": false}, {"key": "total", "label": "Total", "type": "n", "sum": true, "virt": false}, {"key": "current", "label": "Current", "type": "n", "sum": false, "virt": false}, {"key": "d1_30", "label": "1-30 Days", "type": "n", "sum": false, "virt": false}, {"key": "d31_60", "label": "31-60 Days", "type": "n", "sum": false, "virt": false}, {"key": "d61_90", "label": "61-90 Days", "type": "n", "sum": false, "virt": false}, {"key": "over90", "label": "Over 90 Days", "type": "n", "sum": false, "virt": false}, {"key": "claim_no", "label": "Claim#", "type": "s", "sum": false, "virt": false}, {"key": "comment", "label": "Comment", "type": "s", "sum": false, "virt": false}, {"key": "assigned", "label": "Assigned Person", "type": "s", "sum": false, "virt": false}, {"key": "status", "label": "Status", "type": "s", "sum": false, "virt": false}, {"key": "check_no", "label": "Check#", "type": "s", "sum": false, "virt": false}, {"key": "check_amt", "label": "Check Amt", "type": "n", "sum": false, "virt": false}, {"key": "check_date", "label": "Check Date", "type": "d", "sum": false, "virt": false}]}, {"id": "account_analyst", "title": "Account Analyst List", "kind": "ageing", "rows": 226, "cols": [{"key": "division", "label": "Division", "type": "s", "sum": false, "virt": false}, {"key": "acct", "label": "Acct", "type": "s", "sum": false, "virt": false}, {"key": "company", "label": "Company Name", "type": "s", "sum": false, "virt": false}, {"key": "analyst", "label": "Analyst", "type": "s", "sum": false, "virt": false}, {"key": "terms", "label": "Terms", "type": "s", "sum": false, "virt": false}, {"key": "slm", "label": "SLM", "type": "s", "sum": false, "virt": false}, {"key": "vendor", "label": "Vendor#", "type": "s", "sum": false, "virt": false}, {"key": "assigned", "label": "Assigned Person", "type": "s", "sum": false, "virt": false}]}, {"id": "orders", "title": "Sale Report", "kind": "orders", "rows": 115695, "cols": [{"key": "sale_report", "label": "SaleReport", "type": "s", "sum": false, "virt": false}, {"key": "dv", "label": "Dv", "type": "s", "sum": false, "virt": false}, {"key": "acct", "label": "Acct ShipCode", "type": "s", "sum": false, "virt": false}, {"key": "dv_sale_report", "label": "Dv+SaleReport", "type": "s", "sum": false, "virt": false}, {"key": "name", "label": "Name", "type": "s", "sum": false, "virt": false}, {"key": "dept", "label": "Dept", "type": "s", "sum": false, "virt": false}, {"key": "order_no", "label": "Order#", "type": "s", "sum": false, "virt": false}, {"key": "date", "label": "Date", "type": "d", "sum": false, "virt": false}, {"key": "tm", "label": "Tm", "type": "s", "sum": false, "virt": false}, {"key": "slm", "label": "Slm", "type": "s", "sum": false, "virt": false}, {"key": "store_no", "label": "Store#", "type": "s", "sum": false, "virt": false}, {"key": "cust_sku", "label": "CustSKU", "type": "s", "sum": false, "virt": false}, {"key": "item_no", "label": "Item#", "type": "s", "sum": false, "virt": false}, {"key": "item_name", "label": "Description", "type": "s", "sum": false, "virt": false}, {"key": "pack", "label": "Pack", "type": "s", "sum": false, "virt": false}, {"key": "qty", "label": "Qty", "type": "n", "sum": true, "virt": false}, {"key": "uom", "label": "UOM", "type": "s", "sum": false, "virt": false}, {"key": "price", "label": "Price", "type": "n", "sum": false, "virt": false}, {"key": "amount", "label": "Amount", "type": "n", "sum": true, "virt": false}, {"key": "currency", "label": "Currency", "type": "s", "sum": false, "virt": false}, {"key": "status", "label": "Status", "type": "s", "sum": false, "virt": false}, {"key": "deliv", "label": "Deliv", "type": "d", "sum": false, "virt": false}, {"key": "cancel", "label": "Cancel", "type": "d", "sum": false, "virt": false}, {"key": "pt_no", "label": "P.T.#", "type": "s", "sum": false, "virt": false}, {"key": "whs", "label": "Whs", "type": "s", "sum": false, "virt": false}, {"key": "inv_no", "label": "Inv#", "type": "s", "sum": false, "virt": false}, {"key": "rec_no", "label": "Rec#", "type": "s", "sum": false, "virt": false}, {"key": "from_whse", "label": "From Whse", "type": "s", "sum": false, "virt": false}, {"key": "source_file", "label": "Source File", "type": "s", "sum": false, "virt": true}]}, {"id": "ar_detail", "title": "A/R Detail", "kind": "ar_pdf", "rows": 71638, "cols": [{"key": "page", "label": "Pg#", "type": "n", "sum": false, "virt": false}, {"key": "acct", "label": "Acct", "type": "s", "sum": false, "virt": false}, {"key": "dv", "label": "Div", "type": "s", "sum": false, "virt": false}, {"key": "customer", "label": "Name", "type": "s", "sum": false, "virt": false}, {"key": "ref", "label": "Ref#", "type": "s", "sum": false, "virt": false}, {"key": "type", "label": "Ref Type", "type": "s", "sum": false, "virt": false}, {"key": "date", "label": "Date", "type": "d", "sum": false, "virt": false}, {"key": "due", "label": "Due Date", "type": "d", "sum": false, "virt": false}, {"key": "order", "label": "Order#", "type": "s", "sum": false, "virt": false}, {"key": "past", "label": "Past", "type": "s", "sum": false, "virt": false}, {"key": "amount", "label": "Amount", "type": "n", "sum": true, "virt": false}, {"key": "claim", "label": "Claim#", "type": "s", "sum": false, "virt": false}, {"key": "ship", "label": "Ship Code", "type": "s", "sum": false, "virt": false}, {"key": "cust_code", "label": "Cust Code", "type": "s", "sum": false, "virt": false}, {"key": "terms", "label": "Terms", "type": "s", "sum": false, "virt": false}, {"key": "slm", "label": "SLM", "type": "s", "sum": false, "virt": false}, {"key": "vendor", "label": "Vendor#", "type": "s", "sum": false, "virt": false}, {"key": "pd_date", "label": "Pd. Date", "type": "d", "sum": false, "virt": false}, {"key": "check", "label": "Check#", "type": "s", "sum": false, "virt": false}, {"key": "check_amt", "label": "Check Amt", "type": "n", "sum": false, "virt": false}, {"key": "check_date", "label": "Check Date", "type": "d", "sum": false, "virt": false}]}, {"id": "ar_aging", "title": "Aging Summary", "kind": "ar_pdf", "rows": 2660, "cols": [{"key": "page", "label": "Pg#", "type": "n", "sum": false, "virt": false}, {"key": "scope", "label": "Account", "type": "s", "sum": false, "virt": false}, {"key": "cust_code", "label": "Cust Code", "type": "s", "sum": false, "virt": false}, {"key": "name", "label": "Customer", "type": "s", "sum": false, "virt": false}, {"key": "type", "label": "Type", "type": "s", "sum": false, "virt": false}, {"key": "total", "label": "Total", "type": "n", "sum": false, "virt": false}, {"key": "current", "label": "Current", "type": "n", "sum": false, "virt": false}, {"key": "d1_30", "label": "1 - 30 Days", "type": "n", "sum": false, "virt": false}, {"key": "d31_60", "label": "31 - 60 Days", "type": "n", "sum": false, "virt": false}, {"key": "d61_90", "label": "61 - 90 Days", "type": "n", "sum": false, "virt": false}, {"key": "over90", "label": "Over 90 Days", "type": "n", "sum": false, "virt": false}]}, {"id": "ar_customers", "title": "Accounts", "kind": "ar_pdf", "rows": 518, "cols": [{"key": "page", "label": "Pg#", "type": "n", "sum": false, "virt": false}, {"key": "code", "label": "Cust Code", "type": "s", "sum": false, "virt": false}, {"key": "name", "label": "Customer", "type": "s", "sum": false, "virt": false}, {"key": "terms", "label": "Terms", "type": "s", "sum": false, "virt": false}, {"key": "slm", "label": "SLM", "type": "s", "sum": false, "virt": false}, {"key": "vendor", "label": "Vendor#", "type": "s", "sum": false, "virt": false}, {"key": "balance", "label": "Balance", "type": "n", "sum": true, "virt": false}, {"key": "mtd", "label": "M-T-D Sales", "type": "n", "sum": false, "virt": false}, {"key": "ytd", "label": "Y-T-D Sales", "type": "n", "sum": false, "virt": false}, {"key": "ytd_ret", "label": "Y-T-D Retns", "type": "n", "sum": false, "virt": false}]}, {"id": "reason_list", "title": "Reason codes", "kind": "reasons", "rows": 216, "cols": [{"key": "code", "label": "Reason Code", "type": "s", "sum": false, "virt": false}, {"key": "description", "label": "Description", "type": "s", "sum": false, "virt": false}]}, {"id": "price_list", "title": "PRICE LIST", "kind": "batch", "rows": 36, "cols": [{"key": "item", "label": "Item #", "type": "s", "sum": false, "virt": false}, {"key": "description", "label": "Description", "type": "s", "sum": false, "virt": false}]}, {"id": "reason_codes", "title": "REASON", "kind": "batch", "rows": 378, "cols": [{"key": "code", "label": "Code", "type": "s", "sum": false, "virt": false}, {"key": "description", "label": "Description", "type": "s", "sum": false, "virt": false}]}, {"id": "batch_rows", "title": "Batch", "kind": "batch", "rows": 10, "cols": [{"key": "no", "label": "#", "type": "n", "sum": false, "virt": false}, {"key": "company", "label": "Company", "type": "s", "sum": false, "virt": false}, {"key": "date", "label": "Date", "type": "d", "sum": false, "virt": false}, {"key": "amount", "label": "Amount", "type": "n", "sum": true, "virt": false}, {"key": "db_no", "label": "DB#", "type": "s", "sum": false, "virt": false}, {"key": "claim_no", "label": "Claim #", "type": "s", "sum": false, "virt": false}, {"key": "rt_no", "label": "RT #", "type": "s", "sum": false, "virt": false}, {"key": "rt_amount", "label": "RT Amount", "type": "n", "sum": false, "virt": false}, {"key": "discrepancy", "label": "Discrepancy", "type": "n", "sum": false, "virt": false}, {"key": "over_under", "label": "Credit Over / Under", "type": "n", "sum": false, "virt": false}]}, {"id": "memo_headers", "title": "Memo forms", "kind": "batch", "rows": 10, "cols": [{"key": "memo", "label": "Memo", "type": "n", "sum": false, "virt": false}, {"key": "date", "label": "Date", "type": "d", "sum": false, "virt": false}, {"key": "sold_to", "label": "Sold To", "type": "s", "sum": false, "virt": false}, {"key": "sold_acct", "label": "Sold Acct", "type": "s", "sum": false, "virt": false}, {"key": "ship_to", "label": "Ship To", "type": "s", "sum": false, "virt": false}, {"key": "ship_acct", "label": "Ship Acct", "type": "s", "sum": false, "virt": false}, {"key": "reason", "label": "Reason", "type": "s", "sum": false, "virt": false}, {"key": "reason_code", "label": "Reason Code", "type": "s", "sum": false, "virt": false}, {"key": "salesman", "label": "Salesman", "type": "s", "sum": false, "virt": false}, {"key": "terms", "label": "Terms", "type": "s", "sum": false, "virt": false}, {"key": "via", "label": "Shipped Via", "type": "s", "sum": false, "virt": false}, {"key": "claim", "label": "Customer Claim #", "type": "s", "sum": false, "virt": false}, {"key": "subtotal", "label": "Subtotal", "type": "n", "sum": false, "virt": false}, {"key": "gst", "label": "GST/HST", "type": "n", "sum": false, "virt": false}, {"key": "freight", "label": "Freight/Handling", "type": "n", "sum": false, "virt": false}, {"key": "adjustment", "label": "Adjustment", "type": "n", "sum": false, "virt": false}, {"key": "total", "label": "Total", "type": "n", "sum": true, "virt": false}, {"key": "db_no", "label": "Debit Memo Nos.", "type": "s", "sum": false, "virt": false}]}, {"id": "memo_lines", "title": "Memo lines", "kind": "batch", "rows": 167, "cols": [{"key": "memo", "label": "Memo", "type": "n", "sum": false, "virt": false}, {"key": "style", "label": "Style No.", "type": "s", "sum": false, "virt": false}, {"key": "qty", "label": "Quantity PCS", "type": "n", "sum": true, "virt": false}, {"key": "description", "label": "Description", "type": "s", "sum": false, "virt": false}, {"key": "price", "label": "Price", "type": "n", "sum": false, "virt": false}, {"key": "amount", "label": "Amount", "type": "n", "sum": true, "virt": false}]}];
+const $=s=>document.querySelector(s), esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* theme + nav */
+$('#theme').onclick=()=>{const r=document.documentElement;r.dataset.theme=r.dataset.theme==='light'?'dark':'light'};
+[['s1','Big picture'],['s2','Follow the data'],['s3','Cleaning lab'],['s4','Database'],['s5','Recheck'],['s6','Safety']]
+ .forEach(([id,t])=>{const b=document.createElement('button');b.className='btn';b.textContent=t;b.onclick=()=>document.getElementById(id).scrollIntoView({behavior:'smooth'});$('#nav').append(b)});
+
+/* ---------- 1. big picture ---------- */
+const NODES={
+ user:{x:20,y:20,w:150,h:50,t:'Accounting user',s:'browser on the LAN',lane:'',
+   info:['Opens the app at the host / port in <code>config.py</code> (default 192.168.2.123:8020).','Four pages: Dashboard, Upload (DataBase Room), Memo builder, Recheck.','Everything is plain HTML + JavaScript. No framework build step.']},
+ pages:{x:230,y:20,w:190,h:50,t:'Pages + static JS',s:'Jinja templates, upload.js, viewer.js, recheck.js',
+   info:['<code>app/templates/*.html</code> are rendered by FastAPI/Jinja2.','<code>upload.js</code> sends files, polls import status, runs pdf.js for Report 2.','<code>viewer.js</code> + <code>viewer_engine.js</code> (DataTables) show the stored tables with filters, export buttons and total rows.','<code>recheck.js</code> uploads a batch and draws the error table.']},
+ pdf:{x:480,y:20,w:190,h:50,t:'pdf.js in the browser',s:'parse_report.js (Report2Excel v7)',
+   info:['The A/R "Report 2" PDF is parsed <b>in the browser</b>, not in Python (project rule).','The parsed tables are posted as JSON to <code>/api/files/{id}/rows</code>.']},
+ api:{x:20,y:130,w:400,h:60,t:'FastAPI  &middot;  app/main.py',s:'routes: /upload  /api/files  /api/recheck  /api/files/{id}/data',
+   info:['Single native FastAPI app (no Flask / WSGI wrapper) with GZip middleware.','<code>POST /upload/{kind}</code> validates type, size and duplicates, saves the file, then starts the import in a background thread.','<code>POST /api/recheck</code> saves the batch copy and calls <code>recheck.run()</code>.','<code>GET /api/files/{id}/data</code> serves the first 100 rows instantly, then the full gzip cache.','<code>lifespan()</code> runs <code>init_schema()</code> and resumes interrupted imports at startup.']},
+ uploads:{x:480,y:130,w:190,h:60,t:'data/uploads/',s:'original files, never overwritten',
+   info:['Every uploaded file is kept with a timestamp prefix.','A changed file with the same name keeps the old copy and replaces only that file\'s rows.','Business data under <code>data/</code> is never deleted without approval.']},
+ runner:{x:20,y:250,w:190,h:60,t:'importers/runner.py',s:'background thread, status, progress',
+   info:['<code>import_file()</code> parses, then <code>save_tables()</code> deletes that file\'s old rows and bulk inserts the new ones in one transaction.','Status moves uploaded &rarr; importing &rarr; imported / failed with a readable note.','Calls <code>data_cache.invalidate()</code> before and <code>build()</code> after.']},
+ imps:{x:230,y:250,w:190,h:60,t:'ageing / orders / reasons / batch',s:'one module per raw file type',
+   info:['<b>ageing.py</b> Full Ageing + Account Analyst List.','<b>orders.py</b> Sale Report cleaning (see section 3).','<b>reasons.py</b> reason code list (codes upper-case, descriptions de-spaced).','<b>batch.py</b> template / filled batch workbook.','<b>common.py</b> converters: text, number, date (YYYY-MM-DD).']},
+ specs:{x:480,y:250,w:190,h:60,t:'importers/specs.py',s:'TABLES + KIND_TABLES registry',
+   info:['Defines every table once: key, label, type (s/n/d), options (money, sum, virt).','Drives the CREATE TABLE statements <i>and</i> the viewer columns.','Add a table here and it appears in SQLite and in the viewer.']},
+ db:{x:20,y:380,w:230,h:70,t:'SQLite  &middot;  data/credit.sqlite',s:'source_files + t_* tables',
+   info:['One local file. Every row keeps <code>source_file_id</code> and <code>source_file</code>.','Re-importing a file replaces only that file\'s rows.','Indexes on file id and row number keep per-file reads fast.']},
+ cache:{x:290,y:380,w:190,h:70,t:'data/cache/*.json.gz',s:'prebuilt payload per file',
+   info:['Built right after an import by <code>data_cache.py</code>.','Served with an ETag, so repeat views answer 304.','Stamped with the column layout: if columns change the cache rebuilds itself.','Cleared when rows change or the file is deleted.']},
+ recheck:{x:520,y:380,w:200,h:70,t:'recheck.py',s:'30 protocols, reads xlsx + SQLite',
+   info:['Loads the batch with openpyxl (formulas and raw text needed).','Looks up Ageing, Sale Report, Report 2 and Reason codes in memory (cached by DB file time).','Returns errors grouped by protocol, with cell, value, expected and fix.']},
+ tpl:{x:740,y:380,w:140,h:70,t:'Template .xlsx',s:'templates_xlsx/',
+   info:['The only allowed shape for exports and validation: sheets, columns, formulas, formatting.','The allowed list lives in <code>app/template_rules.py</code>.']},
+ tests:{x:740,y:130,w:140,h:60,t:'tests/',s:'pytest, 53 tests',
+   info:['Every protocol has a test: a clean batch gives zero errors, each mistake is caught.','Run <code>python -m pytest tests</code> after changes.']}
+};
+const EDGES=[
+ ['user','pages','blue'],['pages','api','blue'],['pdf','api','blue'],['pages','pdf','blue'],['api','uploads','blue'],['api','runner','blue'],
+ ['runner','imps','blue'],['imps','specs','green'],['runner','db','green'],['db','cache','amber'],['cache','api','amber'],
+ ['api','pages','amber'],['api','recheck','pink'],['recheck','db','pink'],['recheck','tpl','pink'],['specs','db','green']
+];
+const COL={blue:'var(--blue)',green:'var(--green)',amber:'var(--amber)',pink:'var(--pink)'};
+(function drawBig(){
+  const svg=$('#big');let h='';
+  const C=k=>({x:NODES[k].x+NODES[k].w/2,y:NODES[k].y+NODES[k].h/2});
+  const edgePath=(a,b)=>{const A=C(a),B=C(b);const mx=(A.x+B.x)/2;return `M${A.x},${A.y} C${A.x},${(A.y+B.y)/2} ${B.x},${(A.y+B.y)/2} ${B.x},${B.y}`};
+  EDGES.forEach(([a,b,c],i)=>{const d=edgePath(a,b);h+=`<path class="edge" d="${d}"/>`;
+    for(let k=0;k<2;k++)h+=`<circle r="4.5" fill="${COL[c]}"><animateMotion dur="${3.2+i%4*.5}s" begin="${-k*1.6-i*.3}s" repeatCount="indefinite" path="${d}"/></circle>`});
+  Object.entries(NODES).forEach(([k,n])=>{h+=`<g class="node" data-k="${k}"><rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="12"/><text class="t" x="${n.x+10}" y="${n.y+22}">${n.t}</text><text class="s" x="${n.x+10}" y="${n.y+40}">${n.s.length>34?n.s.slice(0,33)+'…':n.s}</text></g>`});
+  svg.innerHTML=h;
+  svg.querySelectorAll('.node').forEach(g=>g.onclick=()=>selNode(g.dataset.k));
+  selNode('api');
+  function selNode(k){svg.querySelectorAll('.node').forEach(g=>g.classList.toggle('sel',g.dataset.k===k));const n=NODES[k];
+    $('#nodeInfo').innerHTML=`<h3>${n.t}</h3><div class="tag">${n.s}</div><ul>${n.info.map(i=>`<li>${i}</li>`).join('')}</ul>`}
+})();
+
+/* ---------- 2. flows ---------- */
+const FLOWS={
+ import:{name:'Upload and import (Ageing, Sale Report, Reasons)',stages:[
+  {n:'Browser',s:'drop a file',t:'You drop a file in the DataBase Room',w:'upload.js &rarr; POST /upload/{kind}',x:'The browser sends the file as multipart form data. <code>kind</code> says what it is: ageing, orders, ar_pdf, reasons, validate.',d:'POST /upload/orders\nContent-Type: multipart/form-data\nfile: inquiry-report6-ordersbyitem_2026_1016.csv  (6.8 MB)'},
+  {n:'Validate',s:'type · size · duplicate',t:'The server validates BEFORE anything is stored',w:'main.py upload_file()',x:'Extension must match the section, file not empty, max 200 MB. Same name twice? Identical bytes &rarr; refused (409). Changed bytes &rarr; the old copy stays on disk and only that file\'s rows will be replaced.',d:'ext .csv  in  ".csv,.xlsx,.xls"   OK\nsize 6.8 MB < 200 MB              OK\nsame name already uploaded?       no -> new row in source_files'},
+  {n:'data/uploads',s:'raw copy kept',t:'The original is saved untouched',w:'data/uploads/orders/20261016-125056-…csv',x:'A timestamped copy is written. Raw business files are never edited or deleted.',d:'data/uploads/orders/20261016-125056-inquiry-report6-ordersbyitem…csv'},
+  {n:'source_files',s:'status = uploaded',t:'One registry row is created',w:'table source_files',x:'The file gets an id. Every imported row will point back to this id and keep the file name.',d:'id=11  kind=orders  filename=…csv  status=uploaded  size_bytes=6 812 044'},
+  {n:'Background thread',s:'runner.import_file',t:'The import starts in a background thread',w:'importers/runner.py start_import()',x:'The upload request returns at once; the page polls /api/files for the status and the progress note ("Read 15,000 order lines").',d:'status: uploaded -> importing\nnote: "Read 15,000 order lines"'},
+  {n:'Parser',s:'orders.parse()',t:'The importer for that file type cleans the data',w:'importers/orders.py (see section 3)',x:'python-calamine / csv reads the raw cells. Headers, item totals and grand totals are dropped; order lines keep their values; text/number/date converters normalise everything.',d:'raw rows: 118 204\norder lines kept: 115 695\nconverted: dates -> 2026-10-16, money -> 14.5, text trimmed'},
+  {n:'SQLite',s:'delete + insert, 1 txn',t:'Rows are saved in ONE transaction',w:'runner.save_tables()',x:'Old rows of this file are deleted and the new ones inserted together. If anything fails the transaction rolls back, so the table is never half-updated.',d:'BEGIN\nDELETE FROM t_orders WHERE source_file_id = 11\nINSERT INTO t_orders (source_file_id, source_file, row_no, "dv", …) VALUES …  x 115 695\nUPDATE source_files SET status=\'imported\', rows_imported=115695\nCOMMIT'},
+  {n:'Gzip cache',s:'data_cache.build()',t:'The viewer payload is prebuilt',w:'app/data_cache.py',x:'Right after the import the full table is written as one gzip JSON file, so the first view is just a file read.',d:'data/cache/file_11.json.gz   (3.1 MB)\nfile_11.meta   {"raw": 31 400 000, "sig": "sale_report|dv|acct|…"}'}]},
+ pdf:{name:'Report 2 PDF (parsed in the browser)',stages:[
+  {n:'Browser',s:'drop the PDF',t:'You upload the A/R PDF',w:'upload.js',x:'The PDF is stored like any file, but Python does not parse it.',d:'POST /upload/ar_pdf  Reports 2.pdf'},
+  {n:'pdf.js',s:'reads every page',t:'pdf.js extracts the text with positions',w:'static/vendor/pdf.worker.js',x:'The browser downloads its own stored copy and reads each page.',d:'GET /api/files/9/download -> ArrayBuffer\npdfjsLib.getDocument(...)  -> 842 pages'},
+  {n:'parse_report.js',s:'Report2Excel v7 logic',t:'Lines are rebuilt into three tables',w:'static/parse_report.js (unchanged v7 tool)',x:'A/R Detail, Aging Summary and Accounts are recognised from the page layout. This file must stay as is.',d:'ar_detail  71 638 rows\nar_aging    2 660 rows\nar_customers  518 rows'},
+  {n:'POST rows',s:'JSON to server',t:'The parsed tables travel to the server',w:'POST /api/files/{id}/rows',x:'The server validates the payload (<code>ar_pdf.rows_from_payload</code>) before it writes anything.',d:'{"detail":[…],"aging":[…],"customers":[…],"warnings":[]}'},
+  {n:'SQLite',s:'t_ar_detail …',t:'Saved exactly like the other files',w:'runner.save_tables()',x:'Same transaction, same source_file_id / source_file columns. "Ship Code" and "Div" here are what protocol 30 uses as its fallback.',d:'DELETE old rows of file 9  ->  INSERT 71 638 x t_ar_detail …'},
+  {n:'Gzip cache',s:'built in a thread',t:'Cache built in the background',w:'data_cache.build()',x:'The response returns immediately; the cache file appears a moment later.',d:'data/cache/file_9.json.gz'}]},
+ view:{name:'Viewing a table (fast pipeline)',stages:[
+  {n:'Viewer page',s:'click a file',t:'You open a file in the viewer',w:'viewer.js',x:'Two requests are made: a tiny one to paint immediately and the full one in the background.',d:'GET /api/files/11/data?limit=100\nGET /api/files/11/data            (If-None-Match: "11-…")'},
+  {n:'First 100 rows',s:'data_cache.payload()',t:'Instant first screen',w:'main.py file_data(limit=100)',x:'SELECT … LIMIT 100 plus the real COUNT(*) so totals are right from the start.',d:'SELECT "sale_report","dv","acct",…  FROM t_orders WHERE source_file_id=11 ORDER BY row_no LIMIT 100'},
+  {n:'Cache check',s:'sig + ETag',t:'The server checks the prebuilt cache',w:'data_cache.get()',x:'Missing, or built with older columns? It is rebuilt first. Otherwise the file is read as is.',d:'meta.sig == current column layout ?  yes -> serve file_11.json.gz\nelse -> build() then serve'},
+  {n:'ETag / 304',s:'repeat views',t:'Same data? Nothing is sent again',w:'If-None-Match',x:'If the browser already has this exact version the answer is 304 with no body.',d:'HTTP 304 Not Modified   (0 bytes)'},
+  {n:'Stream + decode',s:'gzip in the browser',t:'The full payload streams in with a progress bar',w:'viewer.js',x:'Any error shows a message and a "Try again" button; the viewer never hangs on Loading.',d:'Content-Encoding: gzip   X-Raw-Size: 31 400 000'},
+  {n:'DataTables',s:'viewer_engine.js',t:'Filters, sort, totals and downloads',w:'viewer_engine.js, vendor/datatables',x:'Copy, CSV, XLSX, XLS, PDF, print use the rows as shown (filtered and sorted). Double-click a cell to copy it.',d:'115 695 rows · sum(Qty) · sum(Amount) in the footer'}]},
+ recheck:{name:'Recheck a filled batch',stages:[
+  {n:'Browser',s:'drop the batch',t:'You drop a filled Credit Memo Batch',w:'recheck.js',x:'Only .xlsx is accepted.',d:'POST /api/recheck   Credit Memo Batch #10-26973.xlsx'},
+  {n:'Temp copy',s:'system temp folder',t:'Deleted after the check',w:'main.py recheck_batch()',x:'The file is never modified; a temporary copy is read and then deleted.',d:'(nothing is stored)'},
+  {n:'Load workbook',s:'openpyxl',t:'The workbook is opened with formulas and raw text',w:'recheck.run()',x:'Spaces and formulas matter, so a plain value reader is not enough.',d:'sheets: REASON, PRICE LIST, Work1-3, Batch, 1 … 5'},
+  {n:'Reference data',s:'in memory',t:'Ageing, Sale Report, Report 2, Reasons are fetched',w:'recheck._ref_data()',x:'Loaded once, reused until the database file changes. This was the main speed-up.',d:'key = (db mtime, db size)\nageing refs 32 684 · sale ship codes · Report 2 ship codes · reasons'},
+  {n:'30 protocols',s:'stages',t:'Every protocol inspects the batch',w:'recheck.CHECKS',x:'Stage 1 format, stage 2 batch values + Ageing, stage 3 everything else. With STOP_AT_FAILED_STAGE off all errors are shown.',d:'P1 spaces · P2 DB# · P3 amount · … · P29 company · P30 ship code'},
+  {n:'Result JSON',s:'errors by protocol',t:'Errors are returned with cell, value, expected, fix',w:'return {...} in run()',x:'The header line only lists the Sale Report files for the accounts used on the memos (e.g. AM9286: file1.csv, file2.csv).',d:'{"passed":19,"results":[{"id":26,"tag":"AGEING","issues":[{"cell":"Batch!B8","value":"…","expected":"…"}]}]}'},
+  {n:'Error table',s:'recheck.js',t:'You see the errors, with a fix hint',w:'static/recheck.js',x:'SHEET · CELL · ERROR TYPE · ERROR · FIX · REF.',d:'Batch  A1  FORMAT  V1  V3  Must be "V3" like the template'}]},
+ start:{name:'App start and self-repair',stages:[
+  {n:'start_dashboard.bat',s:'or tray app',t:'The server is started',w:'start_dashboard.bat · App Control Center',x:'uvicorn app.main:app on the host/port of config.py. The tray app can run it hidden at Windows login.',d:'python -m uvicorn app.main:app --host 192.168.2.123 --port 8020'},
+  {n:'lifespan()',s:'main.py',t:'Startup hook runs once',w:'main.py lifespan()',x:'Before any request is served the database is prepared.',d:'init_schema()'},
+  {n:'init_schema',s:'database.py',t:'Tables are created or extended',w:'database.py init_schema()',x:'CREATE TABLE IF NOT EXISTS from specs.py. A column added later gets ALTER TABLE ADD COLUMN. No data is dropped.',d:'ALTER TABLE t_orders ADD COLUMN "dv_sale_report" TEXT'},
+  {n:'Backfill',s:'derived values',t:'New derived columns are filled for old rows',w:'database.py',x:'Dv+SaleReport is computed for rows imported before the column existed.',d:'UPDATE t_orders SET dv_sale_report = dv || sale_report WHERE dv_sale_report IS NULL'},
+  {n:'Resume imports',s:'status uploaded/importing',t:'Interrupted imports are finished',w:'lifespan() &rarr; runner.start_import()',x:'If the PC was switched off during an import, the file is imported again automatically.',d:'SELECT id FROM source_files WHERE status IN (\'uploaded\',\'importing\')'},
+  {n:'Ready',s:'serving pages',t:'The app is ready',w:'/api/health',x:'Pages, uploads, viewer and recheck are available.',d:'{"ok": true, "version": "…"}'}]}
+};
+let flowKey='import',fi=-1,fPlaying=false,fTimer=null;
+function buildFlowTabs(){const w=$('#flowtabs');w.innerHTML='';Object.entries(FLOWS).forEach(([k,f])=>{const b=document.createElement('button');b.className='btn'+(k===flowKey?' on':'');b.textContent=f.name;b.onclick=()=>{flowKey=k;stopF();fi=-1;buildFlowTabs();buildLane()};w.append(b)})}
+function buildLane(){const f=FLOWS[flowKey],ln=$('#lane');let h='<div class="packet" id="pk"></div>';
+  f.stages.forEach((s,i)=>{h+=`<div class="stage" data-i="${i}"><div class="box"><b>${s.n}</b><span>${s.s}</span></div></div>`;if(i<f.stages.length-1)h+=`<div class="arrow" data-a="${i}"></div>`});
+  ln.innerHTML=h;ln.querySelectorAll('.stage').forEach(e=>e.onclick=()=>{stopF();goF(+e.dataset.i)});renderStep()}
+function goF(i){const f=FLOWS[flowKey];fi=Math.max(-1,Math.min(f.stages.length-1,i));renderStep()}
+function renderStep(){const f=FLOWS[flowKey],ln=$('#lane');
+  ln.querySelectorAll('.stage').forEach((e,i)=>{e.classList.toggle('active',i===fi);e.classList.toggle('done',i<fi)});
+  ln.querySelectorAll('.arrow').forEach((e,i)=>e.classList.toggle('live',i<fi));
+  const pk=$('#pk'),st=fi>=0?ln.querySelector(`.stage[data-i="${fi}"]`):null;
+  if(st){pk.style.opacity=1;pk.style.left=(st.offsetLeft+st.offsetWidth/2)+'px';pk.style.top=(st.offsetTop+10)+'px'}else pk.style.opacity=0;
+  $('#fBar').style.width=((fi+1)/f.stages.length*100)+'%';$('#fCount').textContent=fi<0?'press Play':`step ${fi+1} of ${f.stages.length}`;
+  const s=f.stages[fi];$('#stepbox').innerHTML=s?`<h3>${s.t}</h3><p class="where mono">${s.w}</p><p>${s.x}</p><pre class="data">${esc(s.d)}</pre>`:'<p style="color:var(--muted)">Choose a journey above and press Play, or click any stage.</p>'}
+function stopF(){fPlaying=false;clearTimeout(fTimer);$('#fPlay').textContent='Play'}
+function tickF(){if(!fPlaying)return;const f=FLOWS[flowKey];if(fi>=f.stages.length-1){stopF();return}goF(fi+1);fTimer=setTimeout(tickF,3600-$('#fSpeed').value*600)}
+$('#fPlay').onclick=()=>{if(fPlaying){stopF();return}if(fi>=FLOWS[flowKey].stages.length-1)fi=-1;fPlaying=true;$('#fPlay').textContent='Pause';tickF()};
+$('#fNext').onclick=()=>{stopF();goF(fi+1)};$('#fPrev').onclick=()=>{stopF();goF(fi-1)};$('#fReset').onclick=()=>{stopF();goF(-1)};
+buildFlowTabs();buildLane();window.addEventListener('resize',renderStep);
+
+/* ---------- 3. cleaning lab ---------- */
+const RAW=[
+ {k:'title',t:'Inquiry Report 6 — Orders by Item',lab:'title block',why:'Title rows are skipped.'},
+ {k:'title',t:'Bill-To #=EMAM9286   Run date 10/16/2026',lab:'ACCOUNT FOUND',why:'Regex <code>Bill-To\\s*#\\s*=\\s*([A-Za-z]{2})([A-Za-z0-9]+)</code> reads "EM" + "AM9286". The account part (AM9286) becomes <b>SaleReport</b> for every row of the file.',acct:true},
+ {k:'head',t:'Dv  Acct    Name        Dept   Order#  Date …',lab:'header',why:'Header rows (first cell "Dv" or empty) are dropped.'},
+ {k:'line',t:'EM  AZIGA3  AMAZON.COM  4JHDCF5E  8841207  10/14/2026 … Item# TST100  Qty 120  Price 14.50',lab:'order line',why:'An order line has an Order# and at least 15 columns. It is held in a group until its item-total row arrives.',row:['AM9286','EM','AZIGA3','AMAZON.COM','4JHDCF5E','8841207','2026-10-14','TST100',120,14.5,1740]},
+ {k:'line',t:'EM  AZINC1  AMAZON FUL  76GHABRV  8841219  10/14/2026 … Item# TST100  Qty 60  Price 14.50',lab:'order line',why:'Another line of the same item. Both lines wait in the same group.',row:['AM9286','EM','AZINC1','AMAZON FUL','76GHABRV','8841219','2026-10-14','TST100',60,14.5,870]},
+ {k:'total',t:'    TST100   Cotton tee, navy   12/case',lab:'item total',why:'The item-total row has Item#, Description and Pack but no Order#. Its Description and Pack are copied onto the lines whose Item# matches. The row itself is dropped.',copy:true},
+ {k:'grand',t:'Grand total   8 811 pcs   $127 004.20',lab:'grand total',why:'Grand totals and blank rows are dropped. The viewer computes its own totals from the stored rows.'}
+];
+let ci=-1,cPlaying=false,cTimer;
+function renderCleanBase(){const h='<tr><th>SaleReport</th><th>Dv</th><th>Acct ShipCode</th><th class="newcol">Dv+SaleReport</th><th>Name</th><th>Dept</th><th>Order#</th><th>Date</th><th>Item#</th><th>Description</th><th>Pack</th><th>Qty</th><th>Price</th><th>Amount</th><th>Source File</th></tr>';$('#clean').innerHTML=h}
+function renderRaw(){ $('#raw').innerHTML=RAW.map((r,i)=>`<div class="rawrow k-${r.k}" data-i="${i}">${esc(r.t)}<span class="lab">${r.lab}</span></div>`).join('')}
+function cStepF(){ if(ci>=RAW.length-1){stopC();return} ci++;const r=RAW[ci];
+  document.querySelectorAll('.rawrow').forEach((e,i)=>e.classList.toggle('hit',i===ci));
+  $('#cTag').textContent=`row ${ci+1} of ${RAW.length}`;
+  let note=`<h3 style="margin:0">${r.lab}</h3><p>${r.why}</p>`;
+  if(r.row){const tb=$('#clean'),tr=document.createElement('tr');tr.className='flash';const [sr,dv,ac,nm,dp,od,dt,it,q,p,am]=r.row;
+    tr.innerHTML=`<td>${sr}</td><td>${dv}</td><td>${ac}</td><td class="newcol">${dv+sr}</td><td>${nm}</td><td>${dp}</td><td>${od}</td><td>${dt}</td><td>${it}</td><td class="desc" style="color:var(--muted)">(waiting)</td><td class="pack" style="color:var(--muted)">(waiting)</td><td>${q}</td><td>$${p.toFixed(2)}</td><td>$${am.toFixed(2)}</td><td>inquiry-report6-…csv</td>`;tb.append(tr);
+    note+=`<p><b>Dv+SaleReport</b> = Dv ("${dv}") + SaleReport ("${sr}") = <b class="mono">${dv+sr}</b>. This is the key protocol 30 uses to find the right Acct ShipCode list.</p>`}
+  if(r.copy){document.querySelectorAll('#clean .desc').forEach(e=>{e.textContent='Cotton tee, navy';e.style.color='';e.parentElement.classList.add('flash')});document.querySelectorAll('#clean .pack').forEach(e=>{e.textContent='12/case';e.style.color=''})}
+  if(r.acct)note+=`<p class="mono">SaleReport = "AM9286"</p>`;
+  $('#cNote').innerHTML=note+`<div class="callout">Every cleaned row also gets <code>source_file_id</code>, <code>source_file</code> and <code>row_no</code> in SQLite, so you can always trace a value back to the file it came from. A value that cannot be converted (bad date, text in a number column) becomes empty instead of crashing the import.</div>`;
+  if(ci>=RAW.length-1)$('#cTag').textContent='finished: 2 clean rows from 7 raw rows'}
+function stopC(){cPlaying=false;clearTimeout(cTimer);$('#cPlay').textContent='Play'}
+function tickC(){if(!cPlaying)return;if(ci>=RAW.length-1){stopC();return}cStepF();cTimer=setTimeout(tickC,2600)}
+function resetC(){stopC();ci=-1;renderRaw();renderCleanBase();$('#cTag').textContent='';$('#cNote').innerHTML='<h3 style="margin:0">Press Play</h3><p>Each raw line is classified and either kept, merged or dropped.</p>'}
+$('#cPlay').onclick=()=>{if(cPlaying){stopC();return}if(ci>=RAW.length-1)resetC();cPlaying=true;$('#cPlay').textContent='Pause';tickC()};
+$('#cStep').onclick=()=>{stopC();cStepF()};$('#cReset').onclick=resetC;resetC();
+
+/* ---------- 4. database ---------- */
+(function(){const mx=Math.max(...TABLES.map(t=>t.rows||1));
+  $('#tables').innerHTML=TABLES.map((t,i)=>`<div class="tbl" data-i="${i}"><b>t_${t.id}</b><small>${esc(t.title)} · from <i>${t.kind}</i> file</small><div style="margin-top:6px"><b class="mono">${t.rows.toLocaleString()}</b> <small>rows · ${t.cols.length} columns</small></div><div class="bar"><i data-w="${Math.max(2,t.rows/mx*100)}"></i></div></div>`).join('');
+  setTimeout(()=>document.querySelectorAll('.bar i').forEach(e=>e.style.width=e.dataset.w+'%'),200);
+  document.querySelectorAll('.tbl').forEach(e=>e.onclick=()=>show(+e.dataset.i));
+  function show(i){document.querySelectorAll('.tbl').forEach(e=>e.classList.toggle('sel',+e.dataset.i===i));const t=TABLES[i];
+    $('#tblInfo').innerHTML=`<h3 style="margin:0">t_${t.id}</h3><p style="color:var(--muted);margin:2px 0 8px">${esc(t.title)} · filled by the <b>${t.kind}</b> importer · ${t.rows.toLocaleString()} rows</p>
+    <p style="margin:6px 0 2px"><b>Hidden columns on every table</b></p><div class="cols"><span>id</span><span>source_file_id</span><span>source_file</span><span>row_no</span></div>
+    <p style="margin:10px 0 2px"><b>Columns from specs.py</b> <small style="color:var(--muted)">(s text · n number · d date)</small></p>
+    <div class="cols">${t.cols.map(c=>`<span class="${c.key==='dv_sale_report'?'new':''} ${c.virt?'virt':''}" title="${c.type}${c.sum?' · summed':''}">${esc(c.label)} <small>${c.type}</small></span>`).join('')}</div>
+    ${t.id==='orders'?'<p class="callout">The green column <b>Dv+SaleReport</b> was added after the table existed: <code>init_schema()</code> added it with ALTER TABLE and backfilled old rows. Dashed = virtual column shown from the built-in source file name.</p>':''}`}
+  show(Math.max(0,TABLES.findIndex(t=>t.id==='orders')));
+})();
+const DLIFE=[
+ {n:'specs.py',s:'TABLES',t:'One registry entry',x:'C("dv_sale_report","Dv+SaleReport") is all it takes to add a column to the database and to the viewer.',d:'"orders": {"kind":"orders","cols":[C("sale_report","SaleReport"), C("dv","Dv"), …]}'},
+ {n:'schema_sql()',s:'CREATE TABLE',t:'SQL is generated',x:'Each column gets TEXT or REAL by type, plus indexes on source_file_id and row_no.',d:'CREATE TABLE IF NOT EXISTS t_orders (id INTEGER PRIMARY KEY, source_file_id INTEGER NOT NULL, source_file TEXT, row_no INTEGER, "sale_report" TEXT, …)'},
+ {n:'init_schema()',s:'ALTER if missing',t:'Old databases are upgraded in place',x:'PRAGMA table_info compares the real columns with the registry and adds only what is missing.',d:'PRAGMA table_info(t_orders)  ->  "dv_sale_report" missing  ->  ALTER TABLE … ADD COLUMN'},
+ {n:'save_tables()',s:'per file',t:'A file is replaced atomically',x:'DELETE rows of that source_file_id, INSERT the new ones, all in one transaction.',d:'DELETE FROM t_orders WHERE source_file_id=11;  INSERT … x 115 695;  COMMIT'},
+ {n:'payload()',s:'SELECT by cols',t:'The viewer reads by registry order',x:'The same column list builds the SELECT, so database and screen can never disagree.',d:'SELECT "sale_report","dv","acct","dv_sale_report",…  FROM t_orders WHERE source_file_id=? ORDER BY row_no'},
+ {n:'delete file',s:'DELETE /api/files/{id}',t:'Deleting a file removes only its rows',x:'Rows with that source_file_id and its cache are removed; every other file is untouched.',d:'DELETE FROM t_orders WHERE source_file_id=11;  rm data/cache/file_11.*'}];
+let di=-1,dT;
+function dRender(){ $('#dlane').innerHTML=DLIFE.map((s,i)=>`<div class="stage ${i===di?'active':i<di?'done':''}"><div class="box"><b>${s.n}</b><span>${s.s}</span></div></div>${i<DLIFE.length-1?`<div class="arrow ${i<di?'live':''}"></div>`:''}`).join('');
+  const s=DLIFE[di];$('#dstep').innerHTML=s?`<h3>${s.t}</h3><p>${s.x}</p><pre class="data">${esc(s.d)}</pre>`:'';$('#dTag').textContent=di<0?'':`step ${di+1} of ${DLIFE.length}`}
+$('#dPlay').onclick=()=>{clearTimeout(dT);di=-1;(function t(){di++;dRender();if(di<DLIFE.length-1)dT=setTimeout(t,2800)})()};dRender();
+
+/* ---------- 5. recheck ---------- */
+const STAGES=[['Stage 1 · Batch format',[12]],['Stage 2 · Batch values and Ageing',[2,26,17,27,28,29,30]]];
+const inStage=new Set(STAGES.flatMap(s=>s[1]));
+const rest=PROTOCOLS.map(p=>p.n).filter(n=>!inStage.has(n));STAGES.push(['Stage 3 · Everything else',rest]);
+const BADSET=new Set([12,26,28,30,17]);
+(function(){let h='';STAGES.forEach(([nm,ids])=>{h+=`<div class="stagehd">${nm}</div><div class="pgrid">`+ids.map(n=>{const p=PROTOCOLS.find(x=>x.n===n);return p?`<div class="pc" data-n="${n}"><b>P${n}</b>${esc(p.title)}</div>`:''}).join('')+'</div>'});$('#pgrid').innerHTML=h;
+  document.querySelectorAll('.pc').forEach(e=>e.onclick=()=>pinfo(+e.dataset.n));
+  function pinfo(n){document.querySelectorAll('.pc').forEach(e=>e.classList.toggle('sel',+e.dataset.n===n));const p=PROTOCOLS.find(x=>x.n===n);
+    $('#pInfo').innerHTML=`<h3 style="margin:0">Protocol ${n}: ${esc(p.title)}</h3><p>${esc(p.rule)}</p><dl class="kv"><dt>Fix hint</dt><dd>${esc(p.fix)}</dd><dt>Shown as</dt><dd><span class="tag">${p.tag}</span></dd></dl>
+    <p style="color:var(--muted);font-size:12.5px">Each protocol has its own test in <code>tests/test_recheck.py</code>: a clean batch must give zero errors and the mistake must be caught by this protocol.</p>`}
+  pinfo(30);
+})();
+let running=false;
+function rReset(){running=false;document.querySelectorAll('.pc').forEach(e=>e.classList.remove('run','ok','bad'));$('#rTag').textContent='';$('#rRun').textContent='Run recheck'}
+$('#rReset').onclick=rReset;
+$('#rRun').onclick=async()=>{if(running)return;rReset();running=true;$('#rRun').textContent='Running…';let ok=0,bad=0;const sim=$('#rErr').checked;
+  for(const e of [...document.querySelectorAll('.pc')]){if(!running)return;e.classList.add('run');await sleep(230);e.classList.remove('run');
+    const isBad=sim&&BADSET.has(+e.dataset.n);e.classList.add(isBad?'bad':'ok');isBad?bad++:ok++;$('#rTag').textContent=`${ok} passed · ${bad} with errors`}
+  running=false;$('#rRun').textContent='Run again'};
+
+/* ---------- 6. rules ---------- */
+const RULES=[
+ ['Strict template','Exports and validation use only the sheets, columns, formulas and formatting of the template. The allowed list is app/template_rules.py.'],
+ ['Source file on every row','Each imported row stores source_file_id and source_file, so every number can be traced to its file.'],
+ ['Validate before writing','Type, size and duplicates are checked before the file is stored; the parser raises a clear error before SQLite is touched.'],
+ ['Never overwrite business data','Uploads keep their original copy. A re-import replaces only that file\'s rows, in one transaction.'],
+ ['One importer per file type','app/importers has one module per raw type, registered in importers/__init__.py.'],
+ ['A/R PDF stays in the browser','pdf.js + parse_report.js (Report2Excel v7) parse it. Python never re-implements it.'],
+ ['Fast views','First 100 rows at once, then a prebuilt gzip cache with ETag / 304. Errors show a Try again button.'],
+ ['Protocols are tested','Every protocol has a test and a row in PROTOCOLS.md. Run python -m pytest tests after any change.']
+];
+$('#rules').innerHTML=RULES.map(r=>`<div class="card"><b>${r[0]}</b><span>${r[1]}</span></div>`).join('');
+</script>
+</body>
+</html>

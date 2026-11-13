@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "_macros.html" import info, page_header %}
+{% block title %}Recheck{% endblock %}
+{% block content %}
+<section class="card">
+  <div class="rc-two">
+  <div class="drop" id="rcDrop" tabindex="0">
+    <b>Drop batch files here, or click to choose {{ info('Upload one or more filled credit memo batches (.xlsx). The recheck points run on every memo, against the Ageing and Sale Report already imported. Nothing in the file is changed.') }}</b>
+    <span class="muted">Credit Memo Batch .xlsx · one or many files</span>
+  </div>
+  <div class="drop rc-sale" id="rcSale" tabindex="0">
+    <b>Sale Report {{ info('The Sale Report of the account is needed for checks P4 and P10. Import it before or after the check; after it is imported the batches are rechecked by themselves.') }}</b>
+    <span class="muted">Drop or click to import (.csv, .xls, .xlsx)</span>
+    <div id="rcSaleNeed"></div>
+  </div>
+  </div>
+  <input type="file" id="rcFile" accept=".xlsx,.csv,.xls" multiple hidden>
+  <p class="muted" id="rcStatus" role="status"></p>
+  <button type="button" class="btn ghost" id="rcDemo" hidden style="display:none">Demo {{ info('Shows example errors, without uploading a file.') }}</button>
+  <div class="rc-row">
+    <div class="rc-tabs" id="rcTabs"></div>
+  </div>
+  <input type="file" id="rcSaleFile" accept=".csv,.xls,.xlsx" multiple hidden>
+</section>
+
+<div id="rcResults"></div>
+
+<details class="rc-points mt" id="rcPoints">
+  <summary class="info" title="The recheck points" aria-label="The recheck points">i</summary>
+  <section class="card">
+    <h3>The recheck points {{ info('Every uploaded batch is checked against these points. Place cells are shown for every problem found.') }}</h3>
+    <table class="grid">
+      <thead><tr><th>#</th><th>Check</th><th></th></tr></thead>
+      <tbody>
+      {% for n, t, i in checks %}<tr><td>{{ n }}</td><td>{{ t }}</td><td>{{ info(i) }}</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </section>
+</details>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', path='recheck.js') }}?v={{ build_time }}"></script>
+{% endblock %}

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{% block title %}Dashboard{% endblock %} · Credit Department</title>
+  <script>try { if (localStorage.getItem('credit-theme') === 'dark') document.documentElement.dataset.theme = 'dark'; } catch (e) {}</script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="{{ url_for('static', path='app.css') }}?v={{ build_time }}">
+  {% block head %}{% endblock %}
+</head>
+<body class="{{ 'page-upload' if path == '/upload' }}">
+<header class="topbar">
+  <a class="brand" href="/"><span class="brand-mark">CD</span><span class="brand-text">Credit Department<small>Credit memo batches</small></span></a>
+  <nav class="mainnav" aria-label="Main">
+    <a href="/" class="{{ 'active' if path == '/' }}" hidden style="display:none">Dashboard</a>
+    <a href="/memo" class="{{ 'active' if path == '/memo' }}">Create batch</a>
+    <a href="/recheck" class="{{ 'active' if path == '/recheck' }}">Recheck</a>
+    <a href="/upload" class="{{ 'active' if path == '/upload' }}">DataBase Room</a>
+  </nav>
+  <button type="button" class="icon-btn" id="themeBtn" title="Light / dark" aria-label="Toggle dark mode">◐</button>
+</header>
+<main>{% block content %}{% endblock %}</main>
+<script src="{{ url_for('static', path='app.js') }}?v={{ build_time }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

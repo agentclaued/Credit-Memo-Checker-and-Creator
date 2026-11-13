@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "_macros.html" import info, page_header %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+{{ page_header('OVERVIEW', 'Credit Department', 'Five source files feed one local SQLite database. Memos are created from that data and exported in your exact template.') }}
+
+<section class="cards">
+  {% for s in sources %}
+  {% set c = counts.get(s.key) %}
+  <a class="card kpi" href="/upload#{{ s.key }}">
+    <div class="kpi-top"><span class="tag tag-{{ s.role }}">{{ s.role|upper }}</span>{{ info(s.info) }}</div>
+    <h3>{{ s.label }}</h3>
+    <div class="kpi-num">{{ c.n if c else 0 }}</div>
+    <div class="muted">{{ ('last upload ' ~ c.last) if c else 'no file uploaded yet' }}</div>
+  </a>
+  {% endfor %}
+</section>
+
+<section class="card mt">
+  <h3>Stored in SQLite {{ info('Rows saved by the importers, per table. Every row keeps the name of the file it came from.') }}</h3>
+  <div class="chips">
+    {% for t in stored %}{% if t.rows %}<span class="chip">{{ t.title }}: <b>{{ '{:,}'.format(t.rows) }}</b></span>{% endif %}{% endfor %}
+    {% if not stored|selectattr('rows')|list %}<span class="muted">Nothing stored yet. Upload a file in the DataBase Room.</span>{% endif %}
+  </div>
+</section>
+
+<section class="grid2 mt">
+  <div class="card">
+    <h3>Workflow {{ info('Steps of the system. Steps marked soon are not built in this demo.') }}</h3>
+    <ol class="steps">
+      <li class="done"><a href="/upload"><b>1 · Import</b><span>Upload raw files, saved with their file name</span></a></li>
+      <li class="done"><a href="/upload"><b>2 · Store</b><span>Rows go into SQLite (data/credit.sqlite)</span></a></li>
+      <li class="demo"><b>3 · Create batch</b><span>Fill the template form in the browser (demo)</span></li>
+      <li class="soon"><b>4 · Export</b><span>Excel built from your template only (soon)</span></li>
+      <li class="soon"><b>5 · Recheck</b><span>Validate a filled batch against the data (soon)</span></li>
+    </ol>
+  </div>
+  <div class="card">
+    <h3>Quick actions</h3>
+    <div class="actions">
+      <a class="btn" href="/upload">Upload files</a>
+      <a class="btn" href="/memo">Create a batch</a>
+      <a class="btn ghost" href="/recheck">Recheck a batch</a>
+      <a class="btn ghost" href="/rules">View template rules</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

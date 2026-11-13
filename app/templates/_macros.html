@@ -1,0 +1,11 @@
+{# Shared macros. Explanations go in info(), never as paragraphs under titles. #}
+{% macro info(text) -%}
+<span class="info" tabindex="0" aria-label="{{ text }}">i<span class="info-tip">{{ text }}</span></span>
+{%- endmacro %}
+
+{% macro page_header(eyebrow, title, tip='') -%}
+<div class="page-head">
+  <p class="eyebrow">{{ eyebrow }}</p>
+  <h1>{{ title }}{% if tip %} {{ info(tip) }}{% endif %}</h1>
+</div>
+{%- endmacro %}

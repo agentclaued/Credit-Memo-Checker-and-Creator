@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "_macros.html" import info %}
+{% block title %}DataBase Room{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', path='vendor/datatables.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', path='vendor/buttons.dataTables.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', path='viewer.css') }}?v={{ build_time }}">
+<link rel="stylesheet" href="{{ url_for('static', path='import.css') }}?v={{ build_time }}">
+{% endblock %}
+{% block content %}
+<div class="imp">
+  <div class="btabs" id="mainTabs" role="tablist" aria-label="File types">
+    {% for s in sources %}
+    <button type="button" class="btab" role="tab" data-kind="{{ s.key }}"><span class="bt-name">{{ s.label }}</span><span class="bt-n"></span></button>
+    {% endfor %}
+  </div>
+
+  <section class="card dv imp-card" id="impCard">
+    <div class="subbar">
+      <div class="subtabs" role="tablist">
+        <button type="button" role="tab" data-sub="data">Data</button>
+        <button type="button" role="tab" data-sub="more">More <span class="sn" id="moreCount"></span></button>
+      </div>
+      <span class="kindinfo" id="kindInfo"></span>
+      <div class="sub-actions">
+        <button type="button" class="btn" id="importBtn">Import file</button>
+        <input type="file" id="fileInput" hidden>
+      </div>
+    </div>
+
+    <div id="viewData">
+      <div class="filebar" id="fileBar">
+        <div class="fb-main"><b id="viewerTitle"></b><span class="muted" id="viewerStatus"></span></div>
+        <div class="fb-actions" id="fbActions"></div>
+      </div>
+      <div id="dvmount"></div>
+      <div class="empty" id="emptyMsg" hidden></div>
+    </div>
+
+    <div id="viewMore" hidden>
+      <table class="grid" id="histTable">
+        <thead><tr><th>File name</th><th class="num">Size</th><th>Status</th><th class="num">Rows</th><th>Details</th><th>Uploaded</th><th class="num">Actions</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="dropveil" id="dropVeil" hidden>Drop the file to import</div>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>window.IMPORT_KINDS = {{ sources|tojson }};</script>
+<script src="{{ url_for('static', path='vendor/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', path='vendor/datatables.min.js') }}"></script>
+<script src="{{ url_for('static', path='vendor/dataTables.buttons.min.js') }}"></script>
+<script src="{{ url_for('static', path='vendor/jszip.min.js') }}"></script>
+<script src="{{ url_for('static', path='vendor/pdfmake.min.js') }}"></script>
+<script src="{{ url_for('static', path='vendor/vfs_fonts.js') }}"></script>
+<script src="{{ url_for('static', path='vendor/buttons.html5.min.js') }}"></script>
+<script src="{{ url_for('static', path='vendor/buttons.colVis.min.js') }}"></script>
+<script src="{{ url_for('static', path='vendor/buttons.print.min.js') }}"></script>
+<script src="{{ url_for('static', path='vendor/pdf.min.js') }}"></script>
+<script src="{{ url_for('static', path='parse_report.js') }}"></script>
+<script src="{{ url_for('static', path='viewer_engine.js') }}?v={{ build_time }}"></script>
+<script src="{{ url_for('static', path='viewer.js') }}?v={{ build_time }}"></script>
+<script src="{{ url_for('static', path='upload.js') }}?v={{ build_time }}"></script>
+{% endblock %}

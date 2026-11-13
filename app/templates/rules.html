@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "_macros.html" import info, page_header %}
+{% block title %}Template rules{% endblock %}
+{% block content %}
+{{ page_header('STRICT TEMPLATE', 'Template rules', 'Read from app/template_rules.py. Exports and rechecks may only use these sheets, columns and formulas.') }}
+
+<section class="grid2">
+  <div class="card">
+    <h3>Sheets</h3>
+    <div class="chips">{% for s in rules.SHEETS %}<span class="chip">{{ s }}</span>{% endfor %}</div>
+    <h3 class="mt">Batch columns (rows {{ rules.BATCH_FIRST_ROW }}–{{ rules.BATCH_LAST_ROW }})</h3>
+    <div class="chips">{% for c in rules.BATCH_COLUMNS %}<span class="chip">{{ c }}</span>{% endfor %}</div>
+    <h3 class="mt">Memo item rows {{ rules.MEMO_FIRST_LINE }}–{{ rules.MEMO_LAST_LINE }}</h3>
+    <table class="grid"><tbody>
+      {% for col, name in rules.MEMO_LINE_COLUMNS.items() %}<tr><td>Column {{ col }}</td><td>{{ name }}</td></tr>{% endfor %}
+    </tbody></table>
+  </div>
+  <div class="card">
+    <h3>Allowed formulas (nothing else) {{ info('{r} is the row number of the line.') }}</h3>
+    <table class="grid"><tbody>
+      {% for k, f in rules.ALLOWED_FORMULAS.items() %}<tr><td>{{ k.replace('_', ' ') }}</td><td><code>{{ f }}</code></td></tr>{% endfor %}
+    </tbody></table>
+  </div>
+</section>
+{% endblock %}
