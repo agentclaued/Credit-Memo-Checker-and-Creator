@@ -39,5 +39,5 @@
 </details>
 {% endblock %}
 {% block scripts %}
-<script src="{{ url_for('static', path='recheck.js') }}?v={{ build_time }}"></script>
+<script src="{{ static_prefix }}recheck.js?v={{ build_time }}"></script>
 {% endblock %}

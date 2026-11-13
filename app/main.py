@@ -45,7 +45,9 @@ templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
 
 def render(request: Request, name: str, **ctx) -> HTMLResponse:
-    ctx.update(build_time=BUILD_TIME, version=APP_VERSION, sources=SOURCES, path=request.url.path)
+    static_prefix = request.scope.get("root_path", "").rstrip("/") + "/static/"
+    ctx.update(build_time=BUILD_TIME, version=APP_VERSION, sources=SOURCES,
+               path=request.url.path, static_prefix=static_prefix)
     return templates.TemplateResponse(request, name, ctx)
 
 

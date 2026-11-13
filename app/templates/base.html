@@ -6,7 +6,7 @@
   <title>{% block title %}Dashboard{% endblock %} · Credit Department</title>
   <script>try { if (localStorage.getItem('credit-theme') === 'dark') document.documentElement.dataset.theme = 'dark'; } catch (e) {}</script>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="{{ url_for('static', path='app.css') }}?v={{ build_time }}">
+  <link rel="stylesheet" href="{{ static_prefix }}app.css?v={{ build_time }}">
   {% block head %}{% endblock %}
 </head>
 <body class="{{ 'page-upload' if path == '/upload' }}">
@@ -21,7 +21,7 @@
   <button type="button" class="icon-btn" id="themeBtn" title="Light / dark" aria-label="Toggle dark mode">◐</button>
 </header>
 <main>{% block content %}{% endblock %}</main>
-<script src="{{ url_for('static', path='app.js') }}?v={{ build_time }}"></script>
+<script src="{{ static_prefix }}app.js?v={{ build_time }}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

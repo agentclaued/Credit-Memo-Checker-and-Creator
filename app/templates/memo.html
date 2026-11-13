@@ -87,4 +87,4 @@
 <datalist id="skuList"></datalist>
 {% endblock %}
 {% block scripts %}<script>window.MEMO_RULES = {{ {'maxMemos': rules.BATCH_LAST_ROW - rules.BATCH_FIRST_ROW + 1, 'lines': rules.MEMO_LAST_LINE - rules.MEMO_FIRST_LINE + 1}|tojson }};</script>
-<script src="{{ url_for('static', path='memo.js') }}?v={{ build_time }}"></script>{% endblock %}
+<script src="{{ static_prefix }}memo.js?v={{ build_time }}"></script>{% endblock %}

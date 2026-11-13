@@ -2,10 +2,10 @@
 {% from "_macros.html" import info %}
 {% block title %}DataBase Room{% endblock %}
 {% block head %}
-<link rel="stylesheet" href="{{ url_for('static', path='vendor/datatables.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', path='vendor/buttons.dataTables.min.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', path='viewer.css') }}?v={{ build_time }}">
-<link rel="stylesheet" href="{{ url_for('static', path='import.css') }}?v={{ build_time }}">
+<link rel="stylesheet" href="{{ static_prefix }}vendor/datatables.css">
+<link rel="stylesheet" href="{{ static_prefix }}vendor/buttons.dataTables.min.css">
+<link rel="stylesheet" href="{{ static_prefix }}viewer.css?v={{ build_time }}">
+<link rel="stylesheet" href="{{ static_prefix }}import.css?v={{ build_time }}">
 {% endblock %}
 {% block content %}
 <div class="imp">
@@ -49,18 +49,18 @@
 {% endblock %}
 {% block scripts %}
 <script>window.IMPORT_KINDS = {{ sources|tojson }};</script>
-<script src="{{ url_for('static', path='vendor/jquery.min.js') }}"></script>
-<script src="{{ url_for('static', path='vendor/datatables.min.js') }}"></script>
-<script src="{{ url_for('static', path='vendor/dataTables.buttons.min.js') }}"></script>
-<script src="{{ url_for('static', path='vendor/jszip.min.js') }}"></script>
-<script src="{{ url_for('static', path='vendor/pdfmake.min.js') }}"></script>
-<script src="{{ url_for('static', path='vendor/vfs_fonts.js') }}"></script>
-<script src="{{ url_for('static', path='vendor/buttons.html5.min.js') }}"></script>
-<script src="{{ url_for('static', path='vendor/buttons.colVis.min.js') }}"></script>
-<script src="{{ url_for('static', path='vendor/buttons.print.min.js') }}"></script>
-<script src="{{ url_for('static', path='vendor/pdf.min.js') }}"></script>
-<script src="{{ url_for('static', path='parse_report.js') }}"></script>
-<script src="{{ url_for('static', path='viewer_engine.js') }}?v={{ build_time }}"></script>
-<script src="{{ url_for('static', path='viewer.js') }}?v={{ build_time }}"></script>
-<script src="{{ url_for('static', path='upload.js') }}?v={{ build_time }}"></script>
+<script src="{{ static_prefix }}vendor/jquery.min.js"></script>
+<script src="{{ static_prefix }}vendor/datatables.min.js"></script>
+<script src="{{ static_prefix }}vendor/dataTables.buttons.min.js"></script>
+<script src="{{ static_prefix }}vendor/jszip.min.js"></script>
+<script src="{{ static_prefix }}vendor/pdfmake.min.js"></script>
+<script src="{{ static_prefix }}vendor/vfs_fonts.js"></script>
+<script src="{{ static_prefix }}vendor/buttons.html5.min.js"></script>
+<script src="{{ static_prefix }}vendor/buttons.colVis.min.js"></script>
+<script src="{{ static_prefix }}vendor/buttons.print.min.js"></script>
+<script src="{{ static_prefix }}vendor/pdf.min.js"></script>
+<script src="{{ static_prefix }}parse_report.js"></script>
+<script src="{{ static_prefix }}viewer_engine.js?v={{ build_time }}"></script>
+<script src="{{ static_prefix }}viewer.js?v={{ build_time }}"></script>
+<script src="{{ static_prefix }}upload.js?v={{ build_time }}"></script>
 {% endblock %}

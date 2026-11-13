@@ -16,6 +16,20 @@ def test_pages_and_lookups():
         assert any(r["code"] == "DR" for r in c.get("/api/reasons").json())
 
 
+def test_stylesheets_load_over_http_and_https():
+    import re
+
+    for scheme in ("http", "https"):
+        with TestClient(app, base_url=f"{scheme}://testserver") as c:
+            for page in ("/recheck", "/upload"):
+                response = c.get(page)
+                links = re.findall(r'<link rel="stylesheet" href="([^"]+)"', response.text)
+                local_links = [link for link in links if link.startswith("/static/")]
+                assert local_links
+                for link in local_links:
+                    assert c.get(link).status_code == 200, link
+
+
 def test_upload_rejects_wrong_type():
     with TestClient(app) as c:
         r = c.post("/upload/ageing", files={"file": ("x.txt", b"hi")})
